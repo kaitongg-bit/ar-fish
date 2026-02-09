@@ -2,33 +2,93 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>🐠 School AR Fish</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>GeoAR Fish Demo</title>
+
+    <!-- 1. 引入 A-Frame (基础 VR/AR 框架) -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+
+    <!-- 2. 引入 AR.js (赋予 A-Frame AR 能力) -->
+    <!-- 注意：这里使用 'aframe-ar.js' 而不是 'aframe-ar-nft.js'，因为教程推荐前者更通用 -->
+    <script type='text/javascript'
+        src='https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js'></script>
+
+    <!-- 3. 引入 Look-at 组件 (确保物体始终面向相机) -->
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
 </head>
 
-<body style="margin: 0; overflow: hidden;">
-    <div id="ui-overlay">
-        <div id="icon">🐠</div>
-        <h1>Classroom Fish AR</h1>
-        <p>适合室内教学：鱼会出现在你正前方 3 米左右。</p>
-        <div id="status">Ready</div>
-        <button id="start-btn">开始探索</button>
+<body style='margin: 0; overflow: hidden;'>
+
+    <!-- 简单的 UI 调试面板 -->
+    <div
+        style="position: fixed; top: 10px; left: 0; width: 100%; text-align: center; z-index: 9999; color: white; font-family: sans-serif; pointer-events: auto;">
+        <h1 style="text-shadow: 2px 2px 4px #000;">AR Fish Demo</h1>
+        <p id="debug" style="background: rgba(0,0,0,0.5); padding: 5px; display: inline-block;">等待操作...</p>
+        <br /><br />
+        <button onclick="placeFishInFront()"
+            style="padding: 15px 30px; font-size: 18px; border: none; border-radius: 5px; background: #007bff; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+            🐟 点击此处放置鱼 (室内模式)
+        </button>
     </div>
 
-    <button id="refresh-btn">重新放鱼 🔄</button>
+    <!-- A-Scene 场景配置 -->
+    <!-- vr-mode-ui="enabled: false" 禁用右下角 VR 眼镜图标 -->
+    <!-- embedded 使场景嵌入网页 -->
+    <!-- arjs 定义属性：webcam (调用摄像头), videoTexture (优化贴图), debugUIEnabled (关闭调试黑块) -->
+    <a-scene vr-mode-ui="enabled: false" embedded arjs='sourceType: webcam; videoTexture: true; debugUIEnabled: false;'>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <!-- 这是一个包含鱼形状的实体 -->
+        <!-- 初始 visible="false" 确保还没点按钮时不乱跑 -->
+        <a-entity id="fish-model" visible="false">
+            <!-- 鱼身 (红色椭球) -->
+            <a-sphere color="red" radius="0.5" scale="1 0.7 1.5"></a-sphere>
+
+            <!-- 鱼尾 (圆锥) -->
+            <a-cone color="red" radius-bottom="0.2" radius-top="0.01" height="0.6" position="0 0 -0.8"
+                rotation="90 0 0"></a-cone>
+
+            <!-- 眼睛 (白色球 + 黑色球) -->
+            <a-sphere color="white" radius="0.1" position="0.2 0.3 0.4"></a-sphere>
+            <a-sphere color="black" radius="0.05" position="0.25 0.35 0.45"></a-sphere>
+
+            <a-sphere color="white" radius="0.1" position="-0.2 0.3 0.4"></a-sphere>
+            <a-sphere color="black" radius="0.05" position="-0.25 0.35 0.45"></a-sphere>
+
+            <!-- 简单的动画：上下浮动 -->
+            <a-animation attribute="position" to="0 0.1 0" direction="alternate" durability="1000"
+                repeat="indefinite"></a-animation>
+        </a-entity>
+
+        <!-- 相机组件：添加 gps-camera 虽然这里我们主要用相对定位 -->
+        <!-- rotation-reader 用于读取手机陀螺仪方向 -->
         <a-camera gps-camera rotation-reader></a-camera>
-        <a-light type="ambient" color="#ffffff" intensity="1.0"></a-light>
-        <a-light type="directional" color="#ffffff" intensity="1.5" position="-1 1 0"></a-light>
-        <!-- 鱼将在这里生成 -->
     </a-scene>
 
-    <script src="script.js"></script>
+    <script>
+        function placeFishInFront() {
+            var fish = document.querySelector('#fish-model');
+            var debugInfo = document.getElementById('debug');
+
+            if (fish) {
+                // 强制显示
+                fish.setAttribute('visible', 'true');
+
+                // 关键点：将物体放置在摄像机坐标系的前方
+                // 0 0 -3 表示在正前方 3 米处，且高度与摄像头持平 (0)
+                // 这样无论你在室内还是室外，无论 GPS 信号如何，它都会出现在你眼前。
+                fish.setAttribute('position', '0 0 -3');
+
+                // 让鱼面向你 (可选，有些模型需要旋转 180 度)
+                // fish.setAttribute('look-at', '[camera]');
+
+                debugInfo.innerText = "鱼已放置在正前方 3 米处！请环顾四周。";
+                console.log("Fish placed at 0 0 -3");
+            } else {
+                debugInfo.innerText = "错误：未找到鱼的模型实体。";
+            }
+        }
+    </script>
 </body>
 
 </html>

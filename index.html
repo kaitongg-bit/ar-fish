@@ -2,92 +2,57 @@
 <html>
 
 <head>
-    <meta charset='utf-8'>
-    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-    <title>GeoAR Fish Demo</title>
-
-    <!-- 1. 引入 A-Frame (基础 VR/AR 框架) -->
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-
-    <!-- 2. 引入 AR.js (赋予 A-Frame AR 能力) -->
-    <!-- 注意：这里使用 'aframe-ar.js' 而不是 'aframe-ar-nft.js'，因为教程推荐前者更通用 -->
-    <script type='text/javascript'
-        src='https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js'></script>
-
-    <!-- 3. 引入 Look-at 组件 (确保物体始终面向相机) -->
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Simple AR Fish</title>
+    <!-- Use specific A-Frame and AR.js versions known to work together -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 
-<body style='margin: 0; overflow: hidden;'>
-
-    <!-- 简单的 UI 调试面板 -->
-    <div
-        style="position: fixed; top: 10px; left: 0; width: 100%; text-align: center; z-index: 9999; color: white; font-family: sans-serif; pointer-events: auto;">
-        <h1 style="text-shadow: 2px 2px 4px #000;">AR Fish Demo</h1>
-        <p id="debug" style="background: rgba(0,0,0,0.5); padding: 5px; display: inline-block;">等待操作...</p>
-        <br /><br />
-        <button onclick="placeFishInFront()"
-            style="padding: 15px 30px; font-size: 18px; border: none; border-radius: 5px; background: #007bff; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-            🐟 点击此处放置鱼 (室内模式)
-        </button>
+<body style="margin: 0; overflow: hidden;">
+    <!-- Minimal UI -->
+    <div style="position: fixed; top: 10px; width: 100%; text-align: center; z-index: 100; color: white;">
+        <button onclick="addFish()" style="font-size: 20px; padding: 10px 20px;">Spawn Fish NOW</button>
     </div>
 
-    <!-- A-Scene 场景配置 -->
-    <!-- vr-mode-ui="enabled: false" 禁用右下角 VR 眼镜图标 -->
-    <!-- embedded 使场景嵌入网页 -->
-    <!-- arjs 定义属性：webcam (调用摄像头), videoTexture (优化贴图), debugUIEnabled (关闭调试黑块) -->
-    <a-scene vr-mode-ui="enabled: false" embedded arjs='sourceType: webcam; videoTexture: true; debugUIEnabled: false;'>
+    <!-- Scene Setup -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+        <!-- Camera -->
+        <!-- rotation-reader handles device orientation -->
+        <a-camera gps-camera rotation-reader></a-camera>
 
-        <!-- 这是一个包含鱼形状的实体 -->
-        <!-- 初始 visible="false" 确保还没点按钮时不乱跑 -->
-        <a-entity id="fish-model" visible="false">
-            <!-- 鱼身 (红色椭球) -->
-            <a-sphere color="red" radius="0.5" scale="1 0.7 1.5"></a-sphere>
-
-            <!-- 鱼尾 (圆锥) -->
-            <a-cone color="red" radius-bottom="0.2" radius-top="0.01" height="0.6" position="0 0 -0.8"
-                rotation="90 0 0"></a-cone>
-
-            <!-- 眼睛 (白色球 + 黑色球) -->
-            <a-sphere color="white" radius="0.1" position="0.2 0.3 0.4"></a-sphere>
-            <a-sphere color="black" radius="0.05" position="0.25 0.35 0.45"></a-sphere>
-
-            <a-sphere color="white" radius="0.1" position="-0.2 0.3 0.4"></a-sphere>
-            <a-sphere color="black" radius="0.05" position="-0.25 0.35 0.45"></a-sphere>
-
-            <!-- 简单的动画：上下浮动 -->
-            <a-animation attribute="position" to="0 0.1 0" direction="alternate" durability="1000"
-                repeat="indefinite"></a-animation>
+        <!-- Fish Entity - Initially present but we will force update it -->
+        <a-entity id="fish-model" position="0 0 -3" scale="0.5 0.5 0.5" visible="true">
+            <!-- Body -->
+            <a-sphere color="red" radius="1"></a-sphere>
+            <!-- Tail -->
+            <a-cone color="red" radius-bottom="0.5" height="1" position="0 0 -1.5" rotation="90 0 0"></a-cone>
         </a-entity>
 
-        <!-- 相机组件：添加 gps-camera 虽然这里我们主要用相对定位 -->
-        <!-- rotation-reader 用于读取手机陀螺仪方向 -->
-        <a-camera gps-camera rotation-reader></a-camera>
     </a-scene>
 
     <script>
-        function placeFishInFront() {
-            var fish = document.querySelector('#fish-model');
-            var debugInfo = document.getElementById('debug');
+        function addFish() {
+            const fish = document.querySelector("#fish-model");
+            const camera = document.querySelector("a-camera");
 
-            if (fish) {
-                // 强制显示
-                fish.setAttribute('visible', 'true');
+            // 1. Force visible
+            fish.setAttribute("visible", "true");
 
-                // 关键点：将物体放置在摄像机坐标系的前方
-                // 0 0 -3 表示在正前方 3 米处，且高度与摄像头持平 (0)
-                // 这样无论你在室内还是室外，无论 GPS 信号如何，它都会出现在你眼前。
-                fish.setAttribute('position', '0 0 -3');
+            // 2. Reposition directly in front of camera (-3 meters z)
+            // We use relative position in the scene graph
+            // If the fish is a child of the scene, 0 0 -3 is default "forward" 
+            // provided the camera is at 0 0 0 (which it mostly is at start)
+            fish.setAttribute("position", "0 0 -3");
 
-                // 让鱼面向你 (可选，有些模型需要旋转 180 度)
-                // fish.setAttribute('look-at', '[camera]');
-
-                debugInfo.innerText = "鱼已放置在正前方 3 米处！请环顾四周。";
-                console.log("Fish placed at 0 0 -3");
-            } else {
-                debugInfo.innerText = "错误：未找到鱼的模型实体。";
-            }
+            alert("Fish spawned at 0 0 -3");
         }
+
+        // Auto-run on load to try spawning immediately
+        window.onload = () => {
+            setTimeout(addFish, 2000); // Wait 2s for AR to init
+        };
     </script>
 </body>
 

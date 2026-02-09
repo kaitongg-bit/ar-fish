@@ -3,81 +3,74 @@ AFRAME.registerComponent('walking-fish', {
     init: function () {
         const el = this.el;
 
-        // Fish Body
-        const body = document.createElement('a-entity');
-        body.setAttribute('geometry', {
-            primitive: 'sphere',
-            radius: 0.5,
-            height: 0.8
-        });
-        body.setAttribute('scale', '0.6 0.4 1'); // Flatten a bit
+        // Create a central body
+        const body = document.createElement('a-sphere');
+        body.setAttribute('radius', 0.5);
+        body.setAttribute('scale', '1 0.8 1.4');
         body.setAttribute('material', {
-            color: '#FF6B6B',
+            color: '#FF4D4D',
             roughness: 0.3,
             metalness: 0.2
         });
         el.appendChild(body);
 
         // Fish Tail
-        const tail = document.createElement('a-entity');
-        tail.setAttribute('geometry', {
-            primitive: 'cone',
-            radiusBottom: 0.2,
-            radiusTop: 0.01,
-            height: 0.4
-        });
-        tail.setAttribute('position', '0 0 -0.8');
+        const tail = document.createElement('a-cone');
+        tail.setAttribute('radius-bottom', 0.3);
+        tail.setAttribute('radius-top', 0.01);
+        tail.setAttribute('height', 0.6);
+        tail.setAttribute('position', '0 0 -1');
         tail.setAttribute('rotation', '90 0 0');
-        tail.setAttribute('material', { color: '#FF6B6B' });
+        tail.setAttribute('material', { color: '#FF4D4D' });
         el.appendChild(tail);
 
         // Animation for tail
         tail.setAttribute('animation', {
             property: 'rotation',
-            from: '80 0 0',
-            to: '100 0 0',
+            from: '90 -15 0',
+            to: '90 15 0',
             dir: 'alternate',
-            dur: 500,
+            dur: 400,
             loop: true,
             easing: 'easeInOutQuad'
         });
 
         // Side Fins
-        const finConfigs = [{ x: 0.4, y: 0, r: 45 }, { x: -0.4, y: 0, r: -45 }];
+        const finConfigs = [{ x: 0.5, y: 0, r: 45, side: 'right' }, { x: -0.5, y: 0, r: -45, side: 'left' }];
         finConfigs.forEach(pos => {
-            const fin = document.createElement('a-entity');
-            fin.setAttribute('geometry', { primitive: 'triangle', vertexA: '0 0.2 0', vertexB: '0 -0.2 0', vertexC: '0.3 0 0' });
-            fin.setAttribute('material', { color: '#FF6B6B', side: 'double' });
-            fin.setAttribute('position', `${pos.x} ${pos.y} 0`);
+            const fin = document.createElement('a-triangle');
+            fin.setAttribute('vertex-a', '0 0.2 0');
+            fin.setAttribute('vertex-b', '0 -0.2 0');
+            fin.setAttribute('vertex-c', '0.4 0 0');
+            fin.setAttribute('material', { color: '#FF4D4D', side: 'double' });
+            fin.setAttribute('position', `${pos.x} 0 0.2`);
             fin.setAttribute('rotation', `0 0 ${pos.r}`);
             el.appendChild(fin);
         });
 
         // Eyes
-        const eyeConfigs = [{ x: 0.2, z: 0.4 }, { x: -0.2, z: 0.4 }];
+        const eyeConfigs = [{ x: 0.3, z: 0.6 }, { x: -0.3, z: 0.6 }];
         eyeConfigs.forEach(pos => {
-            const eye = document.createElement('a-entity');
-            eye.setAttribute('geometry', { primitive: 'sphere', radius: 0.08 });
+            const eye = document.createElement('a-sphere');
+            eye.setAttribute('radius', 0.1);
             eye.setAttribute('material', { color: '#000' });
-            eye.setAttribute('position', `${pos.x} 0.1 ${pos.z}`);
+            eye.setAttribute('position', `${pos.x} 0.2 ${pos.z}`);
             el.appendChild(eye);
         });
 
         // Legs
         const legPositions = [
-            { x: 0.3, z: 0.2, id: 'leg1' },
-            { x: -0.3, z: 0.2, id: 'leg2' },
-            { x: 0.3, z: -0.2, id: 'leg3' },
-            { x: -0.3, z: -0.2, id: 'leg4' }
+            { x: 0.25, z: 0.3 }, { x: -0.25, z: 0.3 },
+            { x: 0.25, z: -0.2 }, { x: -0.25, z: -0.2 }
         ];
 
         legPositions.forEach((pos, index) => {
-            const leg = document.createElement('a-entity');
-            leg.setAttribute('geometry', { primitive: 'cylinder', radius: 0.05, height: 0.4 });
-            leg.setAttribute('material', { color: '#FFA07A' });
+            const leg = document.createElement('a-cylinder');
+            leg.setAttribute('radius', 0.05);
+            leg.setAttribute('height', 0.5);
+            leg.setAttribute('material', { color: '#FFC0CB' });
             leg.setAttribute('position', `${pos.x} -0.4 ${pos.z}`);
 
-            // Walking animation
             const delay = (index % 2 === 0) ? 0 : 250;
             leg.setAttribute('animation', {
                 property: 'rotation',
@@ -89,7 +82,6 @@ AFRAME.registerComponent('walking-fish', {
                 loop: true,
                 easing: 'easeInOutQuad'
             });
-
             el.appendChild(leg);
         });
 
@@ -101,7 +93,7 @@ AFRAME.registerComponent('walking-fish', {
             loop: true,
             easing: 'easeInOutQuad',
             from: '0 0 0',
-            to: '0 0.05 0' // Subtle bob
+            to: '0 0.1 0' // Slight bobbing up and down
         });
     }
 });
@@ -158,28 +150,29 @@ function spawnFish(userLat, userLon) {
     const fish = document.createElement('a-entity');
     fish.setAttribute('id', 'my-fish');
     fish.setAttribute('walking-fish', '');
-    fish.setAttribute('look-at', '[gps-camera]'); // Make fish face the user
+    // Removed look-at to prevent weird tilting
 
     // Scale for visibility without being overwhelming
     fish.setAttribute('scale', '2 2 2');
 
+    // For GPS Mode, we want it definitely further. 0.0003 is ~33m.
     if (userLat && userLon) {
-        // GPS Mode: Offset by ~25 meters
-        const offsetLat = userLat + 0.0002;
-        const offsetLon = userLon + 0.0002;
+        // GPS Mode
+        const offsetLat = userLat + 0.0003;
+        const offsetLon = userLon + 0.0003;
         fish.setAttribute('gps-entity-place', `latitude: ${offsetLat}; longitude: ${offsetLon};`);
         console.log(`Fish spawned at GPS: ${offsetLat}, ${offsetLon}`);
     } else {
-        // Preview Mode: Move further away
-        fish.setAttribute('position', '0 -1.5 -25');
-        console.log("Fish spawned in Preview Mode (25m ahead)");
+        // Preview Mode: eye level (y: 0) and 30m ahead
+        fish.setAttribute('position', '0 0 -30');
+        console.log("Fish spawned in Preview Mode (30m ahead)");
     }
 
     container.appendChild(fish);
 
     const badge = document.createElement('div');
     badge.id = 'info-badge';
-    badge.innerText = userLat ? "🐠 Fish spotted further ahead! Look around." : "🐠 Preview Mode: Fish placed 20m ahead.";
+    badge.innerText = userLat ? "🐠 Fish spotted further ahead! Look around." : "🐠 Preview Mode: Fish placed 30m ahead.";
     document.body.appendChild(badge);
 
     // Dynamic Follow (Optional): Update position every 10 seconds to stay near user

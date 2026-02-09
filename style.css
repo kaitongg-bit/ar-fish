@@ -59,7 +59,8 @@ p {
     text-transform: uppercase;
 }
 
-#start-btn {
+#start-btn,
+#refresh-btn {
     background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
     border: none;
     padding: 15px 40px;
@@ -70,9 +71,23 @@ p {
     cursor: pointer;
     box-shadow: 0 10px 20px rgba(79, 172, 254, 0.4);
     transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: inline-block;
 }
 
-#start-btn:hover {
+#refresh-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    font-size: 0.8rem;
+    z-index: 1001;
+    display: none;
+    /* Controlled by JS */
+}
+
+#start-btn:hover,
+#refresh-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 15px 25px rgba(79, 172, 254, 0.6);
 }

@@ -3,36 +3,27 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>🐠 AR Walking Fish - Location Based</title>
+    <title>🐠 School AR Fish</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body style="margin: 0; overflow: hidden;">
     <div id="ui-overlay">
         <div id="icon">🐠</div>
-        <h1>Walking Fish AR</h1>
-        <p>This experience uses your location to place a mysterious fish nearby.</p>
-        <div id="status">Ready to explore</div>
-        <button id="start-btn">Allow Camera & GPS</button>
-        <button id="refresh-btn">Relocate Fish 🔄</button>
+        <h1>Classroom Fish AR</h1>
+        <p>适合室内教学：鱼会出现在你正前方 3 米左右。</p>
+        <div id="status">Ready</div>
+        <button id="start-btn">开始探索</button>
     </div>
 
-    <a-scene vr-mode-ui="enabled: false" embedded
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; precision: medium;">
-        <!-- Camera with GPS and smoother tracking -->
-        <a-camera gps-camera="simulateAltitude: 1.6" rotation-reader></a-camera>
+    <button id="refresh-btn">重新放鱼 🔄</button>
 
-        <!-- The Fish with Legs will be spawned here via script -->
-        <a-entity id="fish-container"></a-entity>
-
-        <!-- Lighting -->
-        <a-light type="ambient" intensity="0.5"></a-light>
-        <a-light type="directional" intensity="0.8" position="1 1 1"></a-light>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <a-camera gps-camera rotation-reader></a-camera>
+        <!-- 鱼将在这里生成 -->
     </a-scene>
 
     <script src="script.js"></script>

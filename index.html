@@ -2,57 +2,188 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Simple AR Fish</title>
-    <!-- Use specific A-Frame and AR.js versions known to work together -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teachable Machine AR Fish</title>
+
+    <!-- 1. A-Frame & AR.js (显示摄像头和鱼) -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+    <!-- 2. Teachable Machine 依赖库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: cyan;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 999;
+            font-size: 16px;
+            max-width: 80%;
+        }
+
+        #color-indicator {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            border: 1px solid white;
+            margin-left: 10px;
+        }
+    </style>
 </head>
 
-<body style="margin: 0; overflow: hidden;">
-    <!-- Minimal UI -->
-    <div style="position: fixed; top: 10px; width: 100%; text-align: center; z-index: 100; color: white;">
-        <button onclick="addFish()" style="font-size: 20px; padding: 10px 20px;">Spawn Fish NOW</button>
+<body>
+
+    <div id="status">
+        ⏳ Loading Model...<br>
+        Please allow camera access.
     </div>
 
-    <!-- Scene Setup -->
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-        <!-- Camera -->
-        <!-- rotation-reader handles device orientation -->
-        <a-camera gps-camera rotation-reader></a-camera>
+    <!-- AR 场景 -->
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;' vr-mode-ui="enabled: false">
 
-        <!-- Fish Entity - Initially present but we will force update it -->
-        <a-entity id="fish-model" position="0 0 -3" scale="0.5 0.5 0.5" visible="true">
-            <!-- Body -->
-            <a-sphere color="red" radius="1"></a-sphere>
-            <!-- Tail -->
-            <a-cone color="red" radius-bottom="0.5" height="1" position="0 0 -1.5" rotation="90 0 0"></a-cone>
-        </a-entity>
+        <!-- 鱼挂在相机上 (Head-Locked) -->
+        <a-camera position="0 0 0" look-controls="enabled: false">
+
+            <!-- 
+               【游泳中心点】
+               我们在正前方 1.5 米处 (z=-1.5) 创建一个看不见的中心点。
+               让这个点自转，鱼挂在这个点边缘，就会绕着这个点转圈圈（游动）。
+            -->
+            <a-entity position="0 0 -1.5"
+                animation="property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear">
+
+                <!-- 
+                   【鱼的容器】
+                   将鱼向右偏移 0.6 米 (position="0.6 0 0")。
+                   同时修正鱼头的朝向 (rotation="0 0 0")，让它看起来是顺着圆切线游动。
+                -->
+                <a-entity position="0.6 0 0" scale="0.1 0.1 0.1" rotation="0 0 0">
+
+                    <!-- 漂浮动画 (上下微微起伏) -->
+                    <a-animation attribute="position" to="0.6 0.1 0" direction="alternate" dur="1000"
+                        repeat="indefinite" easing="easeInOutSine"></a-animation>
+
+                    <!-- 鱼身 -->
+                    <a-sphere id="fish-body" position="0 0 0" radius="0.5" color="#999999"></a-sphere>
+
+                    <!-- 鱼尾 -->
+                    <a-cone id="fish-tail" position="0 0 -0.8" rotation="-90 0 0" radius-bottom="0.2" height="0.6"
+                        color="#999999"
+                        animation="property: rotation; from: -70 0 0; to: -110 0 0; dur: 150; dir: alternate; loop: true">
+                    </a-cone>
+
+                    <!-- 眼睛 -->
+                    <a-sphere position="0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
+                    <a-sphere position="0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
+                    <a-sphere position="-0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
+                    <a-sphere position="-0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
+
+                </a-entity>
+            </a-entity>
+        </a-camera>
 
     </a-scene>
 
-    <script>
-        function addFish() {
-            const fish = document.querySelector("#fish-model");
-            const camera = document.querySelector("a-camera");
+    <script type="text/javascript">
+        // 您的模型 URL
+        const URL = "https://teachablemachine.withgoogle.com/models/V-hvrP5Mf/";
 
-            // 1. Force visible
-            fish.setAttribute("visible", "true");
+        let model, maxPredictions;
+        const statusDiv = document.getElementById("status");
+        const fishBody = document.getElementById("fish-body");
+        const fishTail = document.getElementById("fish-tail");
 
-            // 2. Reposition directly in front of camera (-3 meters z)
-            // We use relative position in the scene graph
-            // If the fish is a child of the scene, 0 0 -3 is default "forward" 
-            // provided the camera is at 0 0 0 (which it mostly is at start)
-            fish.setAttribute("position", "0 0 -3");
+        // 定义 5 种颜色
+        const COLORS = [
+            "#FF0000", // Red
+            "#00FF00", // Green
+            "#0000FF", // Blue
+            "#FFFF00", // Yellow
+            "#800080"  // Purple
+        ];
 
-            alert("Fish spawned at 0 0 -3");
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            try {
+                // 1. 加载模型
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                statusDiv.innerHTML = "[Model Loaded!] <br>Waiting for camera...";
+
+                // 2. 寻找 AR.js 创建的 video 元素
+                // 我们需要轮询直到 video 出现并准备好
+                const checkVideo = setInterval(() => {
+                    const video = document.querySelector("video");
+                    if (video && video.readyState >= 2) {
+                        clearInterval(checkVideo);
+                        statusDiv.innerHTML = "[Camera Active] <br>Predicting gestures...";
+                        // 开始预测循环
+                        window.requestAnimationFrame(() => loop(video));
+                    }
+                }, 500);
+
+            } catch (e) {
+                statusDiv.innerHTML = "[Error] " + e;
+            }
         }
 
-        // Auto-run on load to try spawning immediately
-        window.onload = () => {
-            setTimeout(addFish, 2000); // Wait 2s for AR to init
-        };
+        async function loop(videoElement) {
+            await predict(videoElement);
+            window.requestAnimationFrame(() => loop(videoElement));
+        }
+
+        async function predict(image) {
+            // Teachable Machine 的模型通常也是镜像训练的
+            // 所以这里我们需要加上 true 参数来反转图像，解决"左右不分"的问题
+            const prediction = await model.predict(image, true);
+
+            // 找到概率最高的类别
+            let highestProb = 0;
+            let bestClassIndex = 0;
+
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > highestProb) {
+                    highestProb = prediction[i].probability;
+                    bestClassIndex = i;
+                }
+            }
+
+            // 只有当置信度 > 70% 时才变色，防止闪烁
+            if (highestProb > 0.7) {
+                const className = prediction[bestClassIndex].className;
+                const color = COLORS[bestClassIndex % COLORS.length];
+
+                // 更新 UI
+                // 移除 Emoji，使用纯文本
+                statusDiv.innerHTML = `
+                    Gesture: <b>${className}</b><br>
+                    Confidence: ${(highestProb * 100).toFixed(0)}%<br>
+                    <div id="color-indicator" style="background-color: ${color}"></div>
+                `;
+
+                // 更新鱼的颜色
+                fishBody.setAttribute("color", color);
+                fishTail.setAttribute("color", color);
+            }
+        }
+
+        // 启动
+        init();
     </script>
 </body>
 

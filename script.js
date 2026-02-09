@@ -3,12 +3,18 @@ AFRAME.registerComponent('walking-fish', {
     init: function () {
         const el = this.el;
 
+        // 0. 创建一个包装器 (wrapper) 来统一控制鱼的旋转
+        // 这非常关键，因为 GPS 定位或者 AR.js 可能会怪异地旋转父实体
+        const wrapper = document.createElement('a-entity');
+        wrapper.setAttribute('rotation', '0 0 0');
+        el.appendChild(wrapper);
+
         // 1. 鱼身 (椭圆)
         const body = document.createElement('a-sphere');
         body.setAttribute('radius', '0.5');
         body.setAttribute('scale', '1 0.8 1.4');
         body.setAttribute('material', 'color: #FF4D4D; shader: flat;');
-        el.appendChild(body);
+        wrapper.appendChild(body);
 
         // 2. 鱼尾 (锥体)
         const tail = document.createElement('a-cone');
@@ -19,7 +25,7 @@ AFRAME.registerComponent('walking-fish', {
         tail.setAttribute('rotation', '90 0 0');
         tail.setAttribute('material', 'color: #FF4D4D; shader: flat;');
         tail.setAttribute('animation', 'property: rotation; from: 90 -20 0; to: 90 20 0; dir: alternate; dur: 400; loop: true; easing: easeInOutQuad');
-        el.appendChild(tail);
+        wrapper.appendChild(tail);
 
         // 3. 腿部 (四条柱子)
         const legPositions = [
@@ -36,11 +42,11 @@ AFRAME.registerComponent('walking-fish', {
 
             const delay = (index % 2 === 0) ? 0 : 250;
             leg.setAttribute('animation', `property: rotation; from: -20 0 0; to: 20 0 0; dir: alternate; dur: 500; delay: ${delay}; loop: true; easing: easeInOutQuad`);
-            el.appendChild(leg);
+            wrapper.appendChild(leg);
         });
 
         // 整体上下起伏
-        el.setAttribute('animation', 'property: position; to: 0 0.1 0; dir: alternate; dur: 500; loop: true; easing: easeInOutQuad');
+        wrapper.setAttribute('animation', 'property: position; to: 0 0.1 0; dir: alternate; dur: 500; loop: true; easing: easeInOutQuad');
     }
 });
 
@@ -108,8 +114,10 @@ function spawnFish(lat, lon) {
         // GPS 模式
         fish.setAttribute('gps-entity-place', `latitude: ${lat + 0.00005}; longitude: ${lon + 0.00005};`);
     } else {
-        // 室内/预览模式：直接固定在相机前方 3 米，地板高度
-        fish.setAttribute('position', '0 -1.2 -3');
+        // 室内/预览模式：
+        // 关键修复：位置 z=-4 (前方 4 米)，y=0 (视线高度，居中)
+        // 之前的 y=-1.5 太低了，导致必须低头或平放手机才能看见
+        fish.setAttribute('position', '0 0 -4');
     }
 
     scene.appendChild(fish);

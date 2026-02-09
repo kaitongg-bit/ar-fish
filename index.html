@@ -23,6 +23,8 @@
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         <a-camera gps-camera rotation-reader></a-camera>
+        <a-light type="ambient" color="#ffffff" intensity="1.0"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="1.5" position="-1 1 0"></a-light>
         <!-- 鱼将在这里生成 -->
     </a-scene>
 

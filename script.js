@@ -7,7 +7,7 @@ AFRAME.registerComponent('walking-fish', {
         const body = document.createElement('a-sphere');
         body.setAttribute('radius', '0.5');
         body.setAttribute('scale', '1 0.8 1.4');
-        body.setAttribute('material', 'color: #FF4D4D; roughness: 0.3; metalness: 0.2');
+        body.setAttribute('material', 'color: #FF4D4D; shader: flat;');
         el.appendChild(body);
 
         // 2. 鱼尾 (锥体)
@@ -17,7 +17,7 @@ AFRAME.registerComponent('walking-fish', {
         tail.setAttribute('height', '0.6');
         tail.setAttribute('position', '0 0 -1');
         tail.setAttribute('rotation', '90 0 0');
-        tail.setAttribute('material', 'color: #FF4D4D');
+        tail.setAttribute('material', 'color: #FF4D4D; shader: flat;');
         tail.setAttribute('animation', 'property: rotation; from: 90 -20 0; to: 90 20 0; dir: alternate; dur: 400; loop: true; easing: easeInOutQuad');
         el.appendChild(tail);
 
@@ -32,7 +32,7 @@ AFRAME.registerComponent('walking-fish', {
             leg.setAttribute('radius', '0.06');
             leg.setAttribute('height', '0.5');
             leg.setAttribute('position', `${pos.x} -0.5 ${pos.z}`);
-            leg.setAttribute('material', 'color: #FFA07A');
+            leg.setAttribute('material', 'color: #FFA07A; shader: flat;');
 
             const delay = (index % 2 === 0) ? 0 : 250;
             leg.setAttribute('animation', `property: rotation; from: -20 0 0; to: 20 0 0; dir: alternate; dur: 500; delay: ${delay}; loop: true; easing: easeInOutQuad`);

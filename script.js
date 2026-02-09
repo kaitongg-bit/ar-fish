@@ -115,51 +115,71 @@ document.querySelector('#start-btn').addEventListener('click', () => {
     // Hide UI
     overlay.classList.add('hidden');
 
+    // Show refresh button after initial start
+    document.querySelector('#refresh-btn').style.display = 'block';
+
     // Get location and spawn fish
+    getCurrentLocationAndSpawn();
+});
+
+document.querySelector('#refresh-btn').addEventListener('click', () => {
+    // Remove existing fish
+    const existingFish = document.querySelector('#my-fish');
+    if (existingFish) existingFish.parentNode.removeChild(existingFish);
+    const existingBadge = document.querySelector('#info-badge');
+    if (existingBadge) existingBadge.parentNode.removeChild(existingBadge);
+
+    getCurrentLocationAndSpawn();
+});
+
+function getCurrentLocationAndSpawn() {
+    const status = document.querySelector('#status');
+    status.innerText = "Requesting Location..."; // Update status for refresh
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-
-                spawnFish(lat, lon);
+                spawnFish(position.coords.latitude, position.coords.longitude);
             },
             (err) => {
                 console.warn("Location error, entering Preview Mode: ", err);
-                status.innerText = "Preview Mode (No GPS)";
-                spawnFish(null, null); // Spawn in front of camera
+                status.innerText = "Preview Mode (No GPS)"; // Update status for error
+                spawnFish(null, null);
             },
             { enableHighAccuracy: true, timeout: 5000 }
         );
     } else {
         spawnFish(null, null);
     }
-});
+}
 
 function spawnFish(userLat, userLon) {
     const container = document.querySelector('#fish-container');
     const fish = document.createElement('a-entity');
     fish.setAttribute('id', 'my-fish');
     fish.setAttribute('walking-fish', '');
-    fish.setAttribute('scale', '4 4 4');
+    fish.setAttribute('look-at', '[gps-camera]'); // Make fish face the user
+
+    // Scale for visibility without being overwhelming
+    fish.setAttribute('scale', '2 2 2');
 
     if (userLat && userLon) {
-        // GPS Mode
-        const offsetLat = userLat + 0.00008;
-        const offsetLon = userLon + 0.00008;
+        // GPS Mode: Offset by ~25 meters
+        const offsetLat = userLat + 0.0002;
+        const offsetLon = userLon + 0.0002;
         fish.setAttribute('gps-entity-place', `latitude: ${offsetLat}; longitude: ${offsetLon};`);
         console.log(`Fish spawned at GPS: ${offsetLat}, ${offsetLon}`);
     } else {
-        // Preview Mode (Static Position in front of camera)
-        fish.setAttribute('position', '0 -1 -10');
-        console.log("Fish spawned in Preview Mode");
+        // Preview Mode: Move further away
+        fish.setAttribute('position', '0 -1.5 -25');
+        console.log("Fish spawned in Preview Mode (25m ahead)");
     }
 
     container.appendChild(fish);
 
     const badge = document.createElement('div');
     badge.id = 'info-badge';
-    badge.innerText = userLat ? "🐠 Fish spotted nearby! Look around." : "🐠 Preview Mode: Fish placed 10m ahead.";
+    badge.innerText = userLat ? "🐠 Fish spotted further ahead! Look around." : "🐠 Preview Mode: Fish placed 20m ahead.";
     document.body.appendChild(badge);
 
     // Dynamic Follow (Optional): Update position every 10 seconds to stay near user

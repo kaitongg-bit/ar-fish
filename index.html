@@ -41,60 +41,178 @@
             border: 1px solid white;
             margin-left: 10px;
         }
+
+        /* 1. 水面波纹 (Caustics) */
+        #water-caustics {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 400;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent 60%),
+                linear-gradient(45deg, rgba(0, 255, 255, 0.1) 25%, transparent 25%, transparent 50%, rgba(0, 255, 255, 0.1) 50%, rgba(0, 255, 255, 0.1) 75%, transparent 75%, transparent);
+            background-size: 100% 100%, 40px 40px;
+            animation: shimmer 4s linear infinite;
+            opacity: 0.3;
+            mix-blend-mode: overlay;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 50% 50%, 0 0;
+            }
+
+            100% {
+                background-position: 51% 51%, 40px 40px;
+            }
+        }
+
+        /* 2. 上升气泡 (Bubbles) */
+        .bubble {
+            position: absolute;
+            bottom: -50px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 450;
+            animation: rise 5s infinite ease-in;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: translateY(-120vh) scale(1.5);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- 水面光波 -->
+    <div id="water-caustics"></div>
+    <!-- 气泡容器 (JS生成) -->
+    <div id="bubbles-container"></div>
 
     <div id="status">
         ⏳ Loading Model...<br>
         Please allow camera access.
     </div>
 
-    <!-- AR 场景 -->
     <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;' vr-mode-ui="enabled: false">
-
-        <!-- 鱼挂在相机上 (Head-Locked) -->
         <a-camera position="0 0 0" look-controls="enabled: false">
 
-            <!-- 
-               【游泳中心点】
-               我们在正前方 1.5 米处 (z=-1.5) 创建一个看不见的中心点。
-               让这个点自转，鱼挂在这个点边缘，就会绕着这个点转圈圈（游动）。
-            -->
+            <!-- ====== 鱼群开始 ====== -->
+
+            <!-- 鱼 1: 大鱼 (原来的) -->
             <a-entity position="0 0 -1.5"
                 animation="property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear">
-
-                <!-- 
-                   【鱼的容器】
-                   将鱼向右偏移 0.6 米 (position="0.6 0 0")。
-                   同时修正鱼头的朝向 (rotation="0 0 0")，让它看起来是顺着圆切线游动。
-                -->
                 <a-entity position="0.6 0 0" scale="0.1 0.1 0.1" rotation="0 0 0">
-
-                    <!-- 漂浮动画 (上下微微起伏) -->
                     <a-animation attribute="position" to="0.6 0.1 0" direction="alternate" dur="1000"
                         repeat="indefinite" easing="easeInOutSine"></a-animation>
-
-                    <!-- 鱼身 -->
-                    <a-sphere id="fish-body" position="0 0 0" radius="0.5" color="#999999"></a-sphere>
-
-                    <!-- 鱼尾 -->
-                    <a-cone id="fish-tail" position="0 0 -0.8" rotation="-90 0 0" radius-bottom="0.2" height="0.6"
+                    <a-sphere class="fish-body" position="0 0 0" radius="0.5" color="#999999"></a-sphere>
+                    <a-cone class="fish-tail" position="0 0 -0.8" rotation="-90 0 0" radius-bottom="0.2" height="0.6"
                         color="#999999"
-                        animation="property: rotation; from: -70 0 0; to: -110 0 0; dur: 150; dir: alternate; loop: true">
-                    </a-cone>
-
-                    <!-- 眼睛 -->
+                        animation="property: rotation; from: -70 0 0; to: -110 0 0; dur: 150; dir: alternate; loop: true"></a-cone>
                     <a-sphere position="0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
                     <a-sphere position="0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
                     <a-sphere position="-0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
                     <a-sphere position="-0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
-
                 </a-entity>
             </a-entity>
-        </a-camera>
 
+            <!-- 鱼 2: 小鱼 (稍微远一点，转得快一点) -->
+            <a-entity position="0 -0.2 -1.5"
+                animation="property: rotation; to: 0 -360 0; loop: true; dur: 6000; easing: linear">
+                <a-entity position="-0.5 0.1 0" scale="0.06 0.06 0.06" rotation="0 180 0">
+                    <a-animation attribute="position" to="-0.5 0.2 0" direction="alternate" dur="800"
+                        repeat="indefinite" easing="easeInOutSine"></a-animation>
+                    <a-sphere class="fish-body" position="0 0 0" radius="0.5" color="#999999"></a-sphere>
+                    <a-cone class="fish-tail" position="0 0 -0.8" rotation="-90 0 0" radius-bottom="0.2" height="0.6"
+                        color="#999999"
+                        animation="property: rotation; from: -70 0 0; to: -110 0 0; dur: 100; dir: alternate; loop: true"></a-cone>
+                    <a-sphere position="0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
+                    <a-sphere position="0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
+                </a-entity>
+            </a-entity>
+
+            <!-- 鱼 3: 迷你鱼 (反方向游) -->
+            <a-entity position="0 0.3 -1.5"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear">
+                <a-entity position="0.4 0 0" scale="0.04 0.04 0.04" rotation="0 180 0">
+                    <a-sphere class="fish-body" position="0 0 0" radius="0.5" color="#999999"></a-sphere>
+                    <a-cone class="fish-tail" position="0 0 -0.8" rotation="-90 0 0" radius-bottom="0.2" height="0.6"
+                        color="#999999"
+                        animation="property: rotation; from: -70 0 0; to: -110 0 0; dur: 200; dir: alternate; loop: true"></a-cone>
+                    <a-sphere position="0.2 0.2 0.4" radius="0.1" color="white"></a-sphere>
+                    <a-sphere position="0.25 0.25 0.45" radius="0.05" color="black"></a-sphere>
+                </a-entity>
+            </a-entity>
+
+            <!-- ====== 鱼群结束 ====== -->
+
+            <!-- 4. 海星 (Starfish) - 调整位置到更中间，更容易看到 -->
+            <a-entity position="0.3 -0.2 -1.2"
+                animation="property: rotation; to: 0 0 360; loop: true; dur: 5000; easing: linear">
+                <a-entity rotation="20 0 0">
+                    <a-cylinder class="sea-creature" src="" color="#FFD700" height="0.1" radius="0.15"></a-cylinder>
+                    <a-cone class="sea-creature" color="#FFD700" height="0.4" radius-bottom="0.08" radius-top="0.01"
+                        position="0 0.25 0" rotation="0 0 0"></a-cone>
+                    <a-cone class="sea-creature" color="#FFD700" height="0.4" radius-bottom="0.08" radius-top="0.01"
+                        position="0.23 0.08 0" rotation="0 0 -72"></a-cone>
+                    <a-cone class="sea-creature" color="#FFD700" height="0.4" radius-bottom="0.08" radius-top="0.01"
+                        position="0.15 -0.2 0" rotation="0 0 -144"></a-cone>
+                    <a-cone class="sea-creature" color="#FFD700" height="0.4" radius-bottom="0.08" radius-top="0.01"
+                        position="-0.15 -0.2 0" rotation="0 0 -216"></a-cone>
+                    <a-cone class="sea-creature" color="#FFD700" height="0.4" radius-bottom="0.08" radius-top="0.01"
+                        position="-0.23 0.08 0" rotation="0 0 -288"></a-cone>
+
+                    <!-- 海星眼睛 -->
+                    <a-sphere position="0.05 0.05 0.05" radius="0.03" color="white"></a-sphere>
+                    <a-sphere position="0.05 0.07 0.07" radius="0.015" color="black"></a-sphere>
+                    <a-sphere position="-0.05 0.05 0.05" radius="0.03" color="white"></a-sphere>
+                    <a-sphere position="-0.05 0.07 0.07" radius="0.015" color="black"></a-sphere>
+                </a-entity>
+            </a-entity>
+
+            <!-- 5. 水母 (Jellyfish) - 降低高度，增加自转 -->
+            <a-entity position="-0.4 0.1 -1.5"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 15000; easing: linear">
+                <!-- 上下浮动动画 -->
+                <a-animation attribute="position" to="-0.4 0.2 -1.5" direction="alternate" dur="3000"
+                    repeat="indefinite" easing="easeInOutSine"></a-animation>
+
+                <a-sphere class="sea-creature" color="#E0FFFF" radius="0.2" theta-length="90" rotation="180 0 0"
+                    opacity="0.8">
+                    <!-- 水母眼睛 -->
+                    <a-sphere position="0.08 0.1 -0.12" radius="0.04" color="white"></a-sphere>
+                    <a-sphere position="0.08 0.12 -0.15" radius="0.02" color="black"></a-sphere>
+                    <a-sphere position="-0.08 0.1 -0.12" radius="0.04" color="white"></a-sphere>
+                    <a-sphere position="-0.08 0.12 -0.15" radius="0.02" color="black"></a-sphere>
+                </a-sphere>
+                <a-cylinder class="sea-creature" color="#E0FFFF" height="0.4" radius="0.01" position="0.1 -0.2 0"
+                    opacity="0.6"></a-cylinder>
+                <a-cylinder class="sea-creature" color="#E0FFFF" height="0.4" radius="0.01" position="-0.1 -0.2 0"
+                    opacity="0.6"></a-cylinder>
+                <a-cylinder class="sea-creature" color="#E0FFFF" height="0.4" radius="0.01" position="0 -0.2 0.1"
+                    opacity="0.6"></a-cylinder>
+                <a-cylinder class="sea-creature" color="#E0FFFF" height="0.5" radius="0.01" position="0 -0.25 -0.1"
+                    opacity="0.6"></a-cylinder>
+            </a-entity>
+
+        </a-camera>
     </a-scene>
 
     <script type="text/javascript">
@@ -103,16 +221,28 @@
 
         let model, maxPredictions;
         const statusDiv = document.getElementById("status");
-        const fishBody = document.getElementById("fish-body");
-        const fishTail = document.getElementById("fish-tail");
 
-        // 定义 5 种颜色
+        // 生成气泡
+        function createBubbles() {
+            const container = document.getElementById('bubbles-container');
+            setInterval(() => {
+                const bubble = document.createElement('div');
+                bubble.classList.add('bubble');
+                const size = Math.random() * 20 + 10;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}vw`;
+                bubble.style.animationDuration = `${Math.random() * 3 + 2}s`; // 2-5s
+                container.appendChild(bubble);
+
+                // 自动清理
+                setTimeout(() => bubble.remove(), 5000);
+            }, 300); // 每300ms生成一个
+        }
+        createBubbles();
+
         const COLORS = [
-            "#FF0000", // Red
-            "#00FF00", // Green
-            "#0000FF", // Blue
-            "#FFFF00", // Yellow
-            "#800080"  // Purple
+            "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#800080"
         ];
 
         async function init() {
@@ -120,19 +250,15 @@
             const metadataURL = URL + "metadata.json";
 
             try {
-                // 1. 加载模型
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
                 statusDiv.innerHTML = "[Model Loaded!] <br>Waiting for camera...";
 
-                // 2. 寻找 AR.js 创建的 video 元素
-                // 我们需要轮询直到 video 出现并准备好
                 const checkVideo = setInterval(() => {
                     const video = document.querySelector("video");
                     if (video && video.readyState >= 2) {
                         clearInterval(checkVideo);
                         statusDiv.innerHTML = "[Camera Active] <br>Predicting gestures...";
-                        // 开始预测循环
                         window.requestAnimationFrame(() => loop(video));
                     }
                 }, 500);
@@ -148,11 +274,8 @@
         }
 
         async function predict(image) {
-            // Teachable Machine 的模型通常也是镜像训练的
-            // 所以这里我们需要加上 true 参数来反转图像，解决"左右不分"的问题
-            const prediction = await model.predict(image, true);
+            const prediction = await model.predict(image, true); // 镜像反转
 
-            // 找到概率最高的类别
             let highestProb = 0;
             let bestClassIndex = 0;
 
@@ -163,26 +286,25 @@
                 }
             }
 
-            // 只有当置信度 > 70% 时才变色，防止闪烁
             if (highestProb > 0.7) {
                 const className = prediction[bestClassIndex].className;
                 const color = COLORS[bestClassIndex % COLORS.length];
 
-                // 更新 UI
-                // 移除 Emoji，使用纯文本
+                // 伪装：不显示具体的类别名，只显示魔法激活
                 statusDiv.innerHTML = `
-                    Gesture: <b>${className}</b><br>
+                    [Magic Activated!]<br>
                     Confidence: ${(highestProb * 100).toFixed(0)}%<br>
                     <div id="color-indicator" style="background-color: ${color}"></div>
                 `;
 
-                // 更新鱼的颜色
-                fishBody.setAttribute("color", color);
-                fishTail.setAttribute("color", color);
+                // 同时改变所有鱼的颜色 + 海洋生物的颜色
+                document.querySelectorAll('.fish-body').forEach(el => el.setAttribute('color', color));
+                document.querySelectorAll('.fish-tail').forEach(el => el.setAttribute('color', color));
+                // 让海星和水母也跟着变色（如果不想变色可注释掉这一行）
+                document.querySelectorAll('.sea-creature').forEach(el => el.setAttribute('color', color));
             }
         }
 
-        // 启动
         init();
     </script>
 </body>
